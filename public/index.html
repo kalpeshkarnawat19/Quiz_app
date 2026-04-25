@@ -40,18 +40,54 @@
             </div>
             <div class="quiz-header">
                 <span id="question-number">Question 1 of 10</span>
+                <span id="timer-display" class="timer-pill">00:00</span>
             </div>
 
             <div id="question-container">
                 <h2 id="question-text">Question goes here?</h2>
                 <div id="options-container" class="options"></div>
             </div>
+            <div class="palette-panel">
+                <div class="palette-header">
+                    <h3>Question Palette</h3>
+                    <span id="answered-count">0 / 10 answered</span>
+                </div>
+                <div id="question-palette" class="question-palette"></div>
+            </div>
             <div id="error-message" class="error hidden">Please select an answer to continue.</div>
 
             <div class="navigation-buttons">
                 <button id="prev-btn" class="secondary-btn" type="button" disabled>Previous</button>
                 <button id="next-btn" class="primary-btn" type="button">Next</button>
-                <button id="submit-btn" class="primary-btn hidden" type="button">Submit Quiz</button>
+                <button id="submit-btn" class="primary-btn hidden" type="button">Review Before Submit</button>
+                <button id="quick-submit-btn" class="secondary-btn hidden" type="button">Submit Now</button>
+            </div>
+        </div>
+
+        <div id="review-page" class="view">
+            <h1>Review Before Submit</h1>
+            <p>Check all selected answers and jump back to any question before final submission.</p>
+
+            <div class="review-summary">
+                <div class="stat-card">
+                    <span class="stat-label">Total Questions</span>
+                    <span id="review-total" class="stat-value">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Answered</span>
+                    <span id="review-answered" class="stat-value">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Unanswered</span>
+                    <span id="review-unanswered" class="stat-value">0</span>
+                </div>
+            </div>
+
+            <div id="review-list" class="review-list"></div>
+
+            <div class="navigation-buttons">
+                <button id="back-to-quiz-btn" class="secondary-btn" type="button">Back To Quiz</button>
+                <button id="final-submit-btn" class="primary-btn" type="button">Final Submit</button>
             </div>
         </div>
 
@@ -59,7 +95,7 @@
             <div class="result-shell">
                 <div class="result-header">
                     <h1>Quiz Complete</h1>
-                    <p>Here’s a clear summary of your performance.</p>
+                    <p>Here is a clear summary of your performance.</p>
                 </div>
 
                 <div class="result-overview">
@@ -70,6 +106,18 @@
                         </div>
                     </div>
                     <div class="result-stats">
+                        <div class="stat-card">
+                            <span class="stat-label">Score</span>
+                            <span id="score-ratio" class="stat-value">0 / 10</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Percentage</span>
+                            <span id="percentage-value" class="stat-value">0%</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Performance</span>
+                            <span id="performance-label" class="stat-value">-</span>
+                        </div>
                         <div class="stat-card">
                             <span class="stat-label">Correct</span>
                             <span id="correct-count" class="stat-value">0</span>
