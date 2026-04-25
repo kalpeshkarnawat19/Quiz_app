@@ -3,8 +3,35 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const FRONTEND_ORIGINS = (process.env.FRONTEND_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+app.disable('x-powered-by');
 
 app.use(express.json());
+
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    const allowAnyOrigin = FRONTEND_ORIGINS.length === 0 || FRONTEND_ORIGINS.includes('*');
+    const isAllowedOrigin = allowAnyOrigin || (origin && FRONTEND_ORIGINS.includes(origin));
+
+    if (isAllowedOrigin) {
+        res.setHeader('Access-Control-Allow-Origin', allowAnyOrigin ? '*' : origin);
+        res.setHeader('Vary', 'Origin');
+    }
+
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(204);
+    }
+
+    next();
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // 30 DSA Questions Database
@@ -54,7 +81,8 @@ function shuffleArray(array) {
 // Endpoint to fetch questions
 app.get('/api/questions', (req, res) => {
     // Parse the requested limit (default 10, max 30)
-    let limit = parseInt(req.query.limit) || 10;
+    let limit = Number.parseInt(req.query.limit, 10);
+    if (Number.isNaN(limit)) limit = 10;
     if (limit < 10) limit = 10;
     if (limit > 30) limit = 30;
 
@@ -107,6 +135,13 @@ app.post('/api/submit', (req, res) => {
         score: score,
         total: breakdown.length,
         breakdown: breakdown
+    });
+});
+
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString()
     });
 });
 

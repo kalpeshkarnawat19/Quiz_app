@@ -1,10 +1,15 @@
-// App State
+const DEFAULT_API_TIMEOUT = 10000;
+const FALLBACK_API_PORT = Number.parseInt(
+    document.querySelector('meta[name="quiz-api-port"]')?.content || '3000',
+    10
+);
+const EXPLICIT_API_BASE = document.querySelector('meta[name="quiz-api-base"]')?.content?.trim() || '';
+
 let quizData = [];
 let currentQuestionIndex = 0;
-// userAnswers will now be an object mapped by question ID
 let userAnswers = {};
+let activeApiBase = normalizeBase(EXPLICIT_API_BASE);
 
-// DOM Elements
 const views = {
     start: document.getElementById('start-page'),
     quiz: document.getElementById('quiz-page'),
@@ -16,35 +21,135 @@ const prevBtn = document.getElementById('prev-btn');
 const nextBtn = document.getElementById('next-btn');
 const submitBtn = document.getElementById('submit-btn');
 const restartBtn = document.getElementById('restart-btn');
-const themeToggleBtn = document.getElementById('theme-toggle');
-const themeIcon = document.getElementById('theme-icon');
 const optionsContainer = document.getElementById('options-container');
 const questionNumber = document.getElementById('question-number');
+const questionText = document.getElementById('question-text');
 const progressBar = document.getElementById('progress');
 const errorMessage = document.getElementById('error-message');
+const startErrorMessage = document.getElementById('start-error-message');
 
 const finalScoreEl = document.getElementById('final-score');
+const correctCountEl = document.getElementById('correct-count');
+const attemptedCountEl = document.getElementById('attempted-count');
+const accuracyEl = document.getElementById('accuracy');
 const breakdownContainer = document.getElementById('breakdown-container');
 
-// Event Listeners
+const themeToggleWrapper = document.getElementById('theme-toggle-wrapper');
+const themeToggleBtn = document.getElementById('theme-toggle');
+const themeIcon = document.getElementById('theme-icon');
+
 startBtn.addEventListener('click', startQuiz);
 prevBtn.addEventListener('click', () => navigate(-1));
 nextBtn.addEventListener('click', () => navigate(1));
 submitBtn.addEventListener('click', submitQuiz);
 restartBtn.addEventListener('click', resetQuiz);
-// Theme toggle logic with icon
+
+if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', () => {
+        const isDark = !document.body.classList.contains('dark-mode');
+        setTheme(isDark);
+    });
+    updateThemeFromStorage();
+}
+
+switchView('start');
+
+function normalizeBase(baseUrl) {
+    if (!baseUrl) return '';
+    return baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+}
+
+function isLocalDevOrigin() {
+    return ['localhost', '127.0.0.1'].includes(window.location.hostname);
+}
+
+function getApiCandidates() {
+    const ordered = [];
+    const seen = new Set();
+    const pushCandidate = (value) => {
+        const normalized = normalizeBase(value);
+        if (seen.has(normalized)) return;
+        seen.add(normalized);
+        ordered.push(normalized);
+    };
+
+    pushCandidate(activeApiBase);
+    pushCandidate(EXPLICIT_API_BASE);
+    pushCandidate('');
+
+    if (isLocalDevOrigin() && window.location.port !== String(FALLBACK_API_PORT)) {
+        pushCandidate(`http://localhost:${FALLBACK_API_PORT}`);
+    }
+
+    return ordered;
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_API_TIMEOUT) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+        return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+        clearTimeout(timeoutId);
+    }
+}
+
+async function requestApi(path, options = {}) {
+    const candidates = getApiCandidates();
+    let lastError;
+
+    for (const baseUrl of candidates) {
+        const endpoint = `${baseUrl}${path}`;
+        try {
+            const response = await fetchWithTimeout(endpoint, options);
+            if (!response.ok) {
+                const body = await response.text();
+                throw new Error(`Request failed (${response.status}): ${body || response.statusText}`);
+            }
+
+            activeApiBase = baseUrl;
+            return await response.json();
+        } catch (error) {
+            lastError = error;
+            console.error(`API request failed for ${endpoint}`, error);
+        }
+    }
+
+    throw lastError || new Error('Unable to connect to quiz backend.');
+}
+
+function showStartError(message) {
+    if (!startErrorMessage) return;
+    startErrorMessage.textContent = message;
+    startErrorMessage.classList.remove('hidden');
+}
+
+function hideStartError() {
+    if (!startErrorMessage) return;
+    startErrorMessage.classList.add('hidden');
+    startErrorMessage.textContent = '';
+}
+
+function switchView(viewName) {
+    Object.values(views).forEach((view) => view.classList.remove('active'));
+    views[viewName].classList.add('active');
+
+    if (themeToggleWrapper) {
+        themeToggleWrapper.classList.toggle('hidden', viewName !== 'start');
+    }
+}
+
 function setTheme(isDark) {
     if (isDark) {
         document.body.classList.add('dark-mode');
-        if (themeIcon) themeIcon.src = 'icon-sun.svg';
         localStorage.setItem('theme', 'dark');
+        if (themeIcon) themeIcon.src = 'icon-sun.svg';
     } else {
         document.body.classList.remove('dark-mode');
-        if (themeIcon) themeIcon.src = 'icon-moon.svg';
         localStorage.setItem('theme', 'light');
+        if (themeIcon) themeIcon.src = 'icon-moon.svg';
     }
-    // Force update of all CSS variables by toggling class on <body>
-    document.body.offsetHeight; // force reflow
 }
 
 function updateThemeFromStorage() {
@@ -52,46 +157,27 @@ function updateThemeFromStorage() {
     setTheme(theme === 'dark');
 }
 
-if (themeToggleBtn) {
-    themeToggleBtn.addEventListener('click', () => {
-        const isDark = !document.body.classList.contains('dark-mode');
-        setTheme(isDark);
-    });
-    // On load, set theme and icon from localStorage
-    updateThemeFromStorage();
-}
-
-function switchView(viewName) {
-    Object.values(views).forEach(view => view.classList.remove('active'));
-    views[viewName].classList.add('active');
-}
-
 async function startQuiz() {
     try {
-        startBtn.textContent = "Loading...";
+        hideStartError();
+        startBtn.textContent = 'Loading...';
         startBtn.disabled = true;
 
-        let limit = document.getElementById('num-questions').value;
+        let limit = Number.parseInt(document.getElementById('num-questions').value, 10);
+        if (Number.isNaN(limit)) limit = 10;
         if (limit < 10) limit = 10;
         if (limit > 30) limit = 30;
 
-        const response = await fetch(`/api/questions?limit=${limit}`);
-        if (!response.ok) throw new Error('Failed to fetch questions');
-
-        quizData = await response.json();
-
+        quizData = await requestApi(`/api/questions?limit=${limit}`);
         currentQuestionIndex = 0;
-        userAnswers = {}; // Reset answers mapping
-
-        startBtn.textContent = "Start Quiz";
-        startBtn.disabled = false;
+        userAnswers = {};
 
         switchView('quiz');
         loadQuestion();
     } catch (error) {
-        console.error(error);
-        alert('Could not load quiz data. Please check if the backend is running.');
-        startBtn.textContent = "Start Quiz";
+        showStartError('Could not load quiz data. Confirm backend is running and CORS/API settings are correct.');
+    } finally {
+        startBtn.textContent = 'Start Quiz';
         startBtn.disabled = false;
     }
 }
@@ -101,35 +187,26 @@ function loadQuestion() {
     questionText.textContent = currentQ.question;
     questionNumber.textContent = `Question ${currentQuestionIndex + 1} of ${quizData.length}`;
 
-    // Update progress bar
-    const progressPercent = ((currentQuestionIndex) / quizData.length) * 100;
+    const progressPercent = (currentQuestionIndex / quizData.length) * 100;
     progressBar.style.width = `${progressPercent}%`;
 
-    // Render options
     optionsContainer.innerHTML = '';
     currentQ.options.forEach((option, index) => {
         const label = document.createElement('label');
         label.classList.add('option-label');
 
-        // Check if previously selected
-        if (userAnswers[currentQ.id] === index) {
-            label.classList.add('selected');
-        }
+        if (userAnswers[currentQ.id] === index) label.classList.add('selected');
 
         const input = document.createElement('input');
         input.type = 'radio';
         input.name = 'quiz-option';
         input.value = index;
-        if (userAnswers[currentQ.id] === index) {
-            input.checked = true;
-        }
+        input.checked = userAnswers[currentQ.id] === index;
 
-        input.addEventListener('change', (e) => {
-            // Remove selected class from all
-            document.querySelectorAll('.option-label').forEach(el => el.classList.remove('selected'));
-            // Add to current
+        input.addEventListener('change', (event) => {
+            document.querySelectorAll('.option-label').forEach((el) => el.classList.remove('selected'));
             label.classList.add('selected');
-            userAnswers[currentQ.id] = parseInt(e.target.value);
+            userAnswers[currentQ.id] = Number.parseInt(event.target.value, 10);
             errorMessage.classList.add('hidden');
         });
 
@@ -142,7 +219,6 @@ function loadQuestion() {
         optionsContainer.appendChild(label);
     });
 
-    // Update buttons
     prevBtn.disabled = currentQuestionIndex === 0;
 
     if (currentQuestionIndex === quizData.length - 1) {
@@ -158,7 +234,6 @@ function loadQuestion() {
 
 function navigate(direction) {
     if (direction === 1) {
-        // Validate answer selection when moving forward
         const currentQ = quizData[currentQuestionIndex];
         if (userAnswers[currentQ.id] === undefined) {
             errorMessage.classList.remove('hidden');
@@ -173,7 +248,6 @@ function navigate(direction) {
 }
 
 async function submitQuiz() {
-    // Validate last question
     const currentQ = quizData[currentQuestionIndex];
     if (userAnswers[currentQ.id] === undefined) {
         errorMessage.classList.remove('hidden');
@@ -181,58 +255,63 @@ async function submitQuiz() {
     }
 
     try {
-        submitBtn.textContent = "Submitting...";
+        submitBtn.textContent = 'Submitting...';
         submitBtn.disabled = true;
 
-        const response = await fetch('/api/submit', {
+        const result = await requestApi('/api/submit', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userAnswers })
         });
 
-        if (!response.ok) throw new Error('Failed to submit quiz');
-
-        const result = await response.json();
         renderResult(result);
     } catch (error) {
-        console.error(error);
-        alert('Could not submit answers.');
+        errorMessage.textContent = 'Could not submit answers. Please try again.';
+        errorMessage.classList.remove('hidden');
     } finally {
-        submitBtn.textContent = "Submit Quiz";
+        submitBtn.textContent = 'Submit Quiz';
         submitBtn.disabled = false;
     }
 }
 
 function renderResult(result) {
     const { score, total, breakdown } = result;
+    const accuracy = total > 0 ? Math.round((score / total) * 100) : 0;
 
     const breakdownHtml = breakdown.map((item, index) => {
+        const userAnswer =
+            item.userAnswerIndex !== null && item.userAnswerIndex !== undefined
+                ? item.options[item.userAnswerIndex]
+                : 'Not answered';
+
         return `
-            <div class="breakdown-item ${item.isCorrect ? 'correct' : 'incorrect'}">
-                <div class="breakdown-q">${index + 1}. ${item.question}</div>
-                <div class="breakdown-ans">
-                    <span class="user-ans">Your Answer: ${item.userAnswerIndex !== null && item.userAnswerIndex !== undefined ? item.options[item.userAnswerIndex] : 'Not answered'}</span>
-                    ${!item.isCorrect ? `<span class="correct-ans">Correct Answer: ${item.options[item.correctAnswerIndex]}</span>` : ''}
+            <article class="breakdown-item ${item.isCorrect ? 'correct' : 'incorrect'}">
+                <div class="breakdown-top">
+                    <h3 class="breakdown-q">${index + 1}. ${item.question}</h3>
+                    <span class="status-badge ${item.isCorrect ? 'correct' : 'incorrect'}">
+                        ${item.isCorrect ? 'Correct' : 'Incorrect'}
+                    </span>
                 </div>
-            </div>
+                <p class="answer-line"><strong>Your answer:</strong> ${userAnswer}</p>
+                ${!item.isCorrect ? `<p class="answer-line"><strong>Correct answer:</strong> ${item.options[item.correctAnswerIndex]}</p>` : ''}
+            </article>
         `;
     }).join('');
 
-    // Update result view
-    finalScoreEl.textContent = score;
+    finalScoreEl.textContent = String(score);
     document.querySelector('.score-circle .total').textContent = `/ ${total}`;
+    correctCountEl.textContent = String(score);
+    attemptedCountEl.textContent = String(total);
+    accuracyEl.textContent = `${accuracy}%`;
     breakdownContainer.innerHTML = breakdownHtml;
 
-    // Set final progress to 100%
     progressBar.style.width = '100%';
-
-    setTimeout(() => {
-        switchView('result');
-    }, 300);
+    switchView('result');
 }
 
 function resetQuiz() {
+    hideStartError();
+    errorMessage.textContent = 'Please select an answer to continue.';
+    errorMessage.classList.add('hidden');
     switchView('start');
 }

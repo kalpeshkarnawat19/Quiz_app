@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description"
-        content="Test your knowledge on Data Structures and Algorithms with this interactive quiz.">
+    <meta name="description" content="Test your knowledge on Data Structures and Algorithms with this interactive quiz.">
+    <meta name="quiz-api-port" content="3000">
     <title>DSA Quiz Portal</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -15,14 +15,12 @@
     <div class="twinkling"></div>
 
     <div class="container">
-        <!-- Start Page -->
-        <!-- Theme toggle only on home page -->
-        <div id="theme-toggle-wrapper">
-            <button id="theme-toggle" class="secondary-btn"
-                style="position:absolute; top:1rem; right:1rem; width:44px; height:44px; display:flex; align-items:center; justify-content:center; padding:0; z-index:100;">
-                <img id="theme-icon" src="icon-moon.svg" alt="Toggle theme" width="28" height="28" />
+        <div id="theme-toggle-wrapper" class="theme-toggle-wrapper">
+            <button id="theme-toggle" class="secondary-btn theme-toggle-btn" type="button" aria-label="Toggle theme">
+                <img id="theme-icon" src="icon-moon.svg" alt="" width="22" height="22">
             </button>
         </div>
+
         <div id="start-page" class="view active">
             <h1>DSA Quiz Portal</h1>
             <p>Test your knowledge on Data Structures and Algorithms.</p>
@@ -32,10 +30,10 @@
                 <input type="number" id="num-questions" class="dropdown" min="10" max="30" value="10">
             </div>
 
-            <button id="start-btn" class="primary-btn">Start Quiz</button>
+            <div id="start-error-message" class="error hidden"></div>
+            <button id="start-btn" class="primary-btn" type="button">Start Quiz</button>
         </div>
 
-        <!-- Quiz Interface -->
         <div id="quiz-page" class="view">
             <div class="progress-bar">
                 <div id="progress" class="progress"></div>
@@ -46,33 +44,55 @@
 
             <div id="question-container">
                 <h2 id="question-text">Question goes here?</h2>
-                <div id="options-container" class="options">
-                    <!-- Options will be injected here -->
-                </div>
+                <div id="options-container" class="options"></div>
             </div>
             <div id="error-message" class="error hidden">Please select an answer to continue.</div>
 
             <div class="navigation-buttons">
-                <button id="prev-btn" class="secondary-btn" disabled>Previous</button>
-                <button id="next-btn" class="primary-btn">Next</button>
-                <button id="submit-btn" class="primary-btn hidden">Submit Quiz</button>
+                <button id="prev-btn" class="secondary-btn" type="button" disabled>Previous</button>
+                <button id="next-btn" class="primary-btn" type="button">Next</button>
+                <button id="submit-btn" class="primary-btn hidden" type="button">Submit Quiz</button>
             </div>
         </div>
 
-        <!-- Result Page -->
         <div id="result-page" class="view">
-            <h1>Quiz Complete!</h1>
-            <div class="score-display">
-                <div class="score-circle">
-                    <span id="final-score">0</span>
-                    <span class="total">/ 10</span>
+            <div class="result-shell">
+                <div class="result-header">
+                    <h1>Quiz Complete</h1>
+                    <p>Here’s a clear summary of your performance.</p>
+                </div>
+
+                <div class="result-overview">
+                    <div class="score-card">
+                        <div class="score-circle">
+                            <span id="final-score">0</span>
+                            <span class="total">/ 10</span>
+                        </div>
+                    </div>
+                    <div class="result-stats">
+                        <div class="stat-card">
+                            <span class="stat-label">Correct</span>
+                            <span id="correct-count" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Attempted</span>
+                            <span id="attempted-count" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Accuracy</span>
+                            <span id="accuracy" class="stat-value">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="result-breakdown-panel">
+                    <div class="result-breakdown-header">
+                        <h2>Question Review</h2>
+                    </div>
+                    <div id="breakdown-container" class="breakdown"></div>
                 </div>
             </div>
-            <h2>Performance Breakdown</h2>
-            <div id="breakdown-container" class="breakdown">
-                <!-- Breakdown will be injected here -->
-            </div>
-            <button id="restart-btn" class="primary-btn">Restart Quiz</button>
+            <button id="restart-btn" class="primary-btn" type="button">Restart Quiz</button>
         </div>
     </div>
 
