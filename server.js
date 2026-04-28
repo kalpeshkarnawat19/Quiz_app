@@ -34,7 +34,7 @@ app.use((req, res, next) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 30 DSA Questions Database
+// 50 DSA Questions Database
 const dsaQuestions = [
     { id: "q1", question: "What is the time complexity of searching for an element in a balanced Binary Search Tree?", options: ["O(1)", "O(n)", "O(log n)", "O(n log n)"], correct: 2 },
     { id: "q2", question: "Which data structure operates on a Last-In-First-Out (LIFO) principle?", options: ["Queue", "Stack", "Linked List", "Tree"], correct: 1 },
@@ -65,7 +65,27 @@ const dsaQuestions = [
     { id: "q27", question: "What is a Trie commonly used for?", options: ["Sorting numbers", "Graph traversal", "Prefix matching in strings", "Finding shortest paths"], correct: 2 },
     { id: "q28", question: "What makes a binary tree a Binary Search Tree (BST)?", options: ["Every node has exactly two children", "Left child is smaller, right child is greater than parent", "It is perfectly balanced", "All leaves are at the same level"], correct: 1 },
     { id: "q29", question: "Which matrix representation is most memory-efficient for a sparse graph?", options: ["Adjacency Matrix", "Incidence Matrix", "Adjacency List", "Distance Matrix"], correct: 2 },
-    { id: "q30", question: "What technique does Binary Search use?", options: ["Dynamic Programming", "Greedy", "Backtracking", "Divide and Conquer"], correct: 3 }
+    { id: "q30", question: "What technique does Binary Search use?", options: ["Dynamic Programming", "Greedy", "Backtracking", "Divide and Conquer"], correct: 3 },
+    { id: "q31", question: "What is the average-case time complexity of Binary Search?", options: ["O(1)", "O(log n)", "O(n)", "O(n log n)"], correct: 1 },
+    { id: "q32", question: "Which traversal of a BST gives elements in sorted order?", options: ["Pre-order", "Post-order", "In-order", "Level-order"], correct: 2 },
+    { id: "q33", question: "What is the worst-case time complexity of searching in an unbalanced BST?", options: ["O(log n)", "O(1)", "O(n)", "O(n log n)"], correct: 2 },
+    { id: "q34", question: "Which data structure is used internally by recursion?", options: ["Queue", "Heap", "Stack", "Hash Table"], correct: 2 },
+    { id: "q35", question: "Which algorithm is commonly used for cycle detection in a directed graph using DFS?", options: ["Union-Find", "Color Marking / Recursion Stack", "Prim's Algorithm", "Dijkstra's Algorithm"], correct: 1 },
+    { id: "q36", question: "What is the time complexity of Heap Sort in the worst case?", options: ["O(n)", "O(n^2)", "O(log n)", "O(n log n)"], correct: 3 },
+    { id: "q37", question: "Which of the following is true for a stable sorting algorithm?", options: ["It always runs in O(n log n)", "Equal elements keep their relative order", "It uses no extra space", "It only works for integers"], correct: 1 },
+    { id: "q38", question: "What is the main idea behind memoization?", options: ["Sort data before processing", "Store results of expensive function calls and reuse them", "Split arrays into halves", "Use greedy choices at each step"], correct: 1 },
+    { id: "q39", question: "In Union-Find (Disjoint Set), which optimization helps flatten trees?", options: ["Path Compression", "Breadth-First Search", "Topological Sorting", "Bucketization"], correct: 0 },
+    { id: "q40", question: "Which graph algorithm can handle negative edge weights (without negative cycles)?", options: ["Dijkstra's Algorithm", "Bellman-Ford Algorithm", "Prim's Algorithm", "Kruskal's Algorithm"], correct: 1 },
+    { id: "q41", question: "What is the best-case time complexity of Bubble Sort with an optimized early-exit flag?", options: ["O(1)", "O(log n)", "O(n)", "O(n^2)"], correct: 2 },
+    { id: "q42", question: "Which data structure is ideal for checking balanced parentheses?", options: ["Queue", "Stack", "Trie", "Graph"], correct: 1 },
+    { id: "q43", question: "What does the two-pointer technique usually help optimize?", options: ["Memory only", "Nested-loop style scans on sorted/sequential data", "Graph coloring", "Hash collisions"], correct: 1 },
+    { id: "q44", question: "In sliding window problems on arrays/strings, what is commonly maintained?", options: ["A dynamic subset range", "A recursive call stack", "A spanning tree", "A disjoint set"], correct: 0 },
+    { id: "q45", question: "Which structure is used for implementing BFS shortest path in an unweighted graph?", options: ["Stack", "Queue", "Priority Queue", "Segment Tree"], correct: 1 },
+    { id: "q46", question: "What is the time complexity to build a heap from n elements using heapify?", options: ["O(n)", "O(log n)", "O(n log n)", "O(n^2)"], correct: 0 },
+    { id: "q47", question: "Which tree data structure is commonly used for range sum queries with updates?", options: ["Trie", "Segment Tree", "AVL Tree", "Suffix Tree"], correct: 1 },
+    { id: "q48", question: "What is the key property of a min-priority queue?", options: ["Largest key is removed first", "Elements are sorted after each insertion", "Smallest key is removed first", "It supports only integer keys"], correct: 2 },
+    { id: "q49", question: "Which approach is typically used in merge sort's divide-and-conquer strategy?", options: ["Partition and random shuffle", "Divide array, sort halves, then merge", "Greedy local swapping only", "Hashing all elements"], correct: 1 },
+    { id: "q50", question: "Which algorithm can be used to find strongly connected components in a directed graph?", options: ["Kruskal's Algorithm", "Kosaraju's Algorithm", "Binary Search", "Insertion Sort"], correct: 1 }
 ];
 
 // Utility function to shuffle an array
@@ -80,11 +100,11 @@ function shuffleArray(array) {
 
 // Endpoint to fetch questions
 app.get('/api/questions', (req, res) => {
-    // Parse the requested limit (default 10, max 30)
+    // Parse the requested limit (default 10, max 50)
     let limit = Number.parseInt(req.query.limit, 10);
     if (Number.isNaN(limit)) limit = 10;
     if (limit < 10) limit = 10;
-    if (limit > 30) limit = 30;
+    if (limit > 50) limit = 50;
 
     // Shuffle questions and select the requested number
     const shuffled = shuffleArray(dsaQuestions);
